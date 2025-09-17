@@ -15,6 +15,7 @@ static uint32_t buffer_index = 0; // index of first empty spot in buffer
 static int buffer_capacity = 0;
 
 static uint32_t color;
+static uint32_t bg_color;
 
 static void push_buffer(action_point *act){
 	if(buffer_index == buffer_capacity){
@@ -27,8 +28,6 @@ static void push_buffer(action_point *act){
 	}
 
 	undo_buffer[buffer_index++] = *act;
-
-	printf("buffer index at: %d\ncapacity of: %d\n", buffer_index, buffer_capacity);
 }
 
 static void pop_buffer(action_point *act){
@@ -56,7 +55,8 @@ void init_drawing(Display *display, Window window, uint32_t background_color, ui
 	gc_attr.line_width = 0;
 	gc = XCreateGC(disp, win, GCCapStyle, &gc_attr);
 
-	XSetBackground(disp, gc, background_color);
+	bg_color = background_color;
+
 	XSetForeground(disp, gc, foreground_color);
 	color = foreground_color;
 }
@@ -85,26 +85,28 @@ void undo_action(){
 	if(buffer_index == 0)
 		return;
 
-	printf("buffer index at undo start is: %d\n", buffer_index);
 	action_point act;
 	pop_buffer(&act);
 	while(act.type == LINE_TO)
 		pop_buffer(&act);
-
-	printf("buffer index after poping is: %d\n", buffer_index);
-
-	int prev_thickness = gc_attr.line_width;
-	uint32_t prev_color = color;
 
 	if(buffer_index == 0){
 		XClearWindow(disp, win);
 		return;
 	}
 
+	int screen = DefaultScreen(disp);
+	int width = DisplayWidth(disp, screen);
+	int height = DisplayHeight(disp, screen);
+	XSetForeground(disp, gc, bg_color);
+	XFillRectangle(disp, display_buffer, gc, 0, 0, width, height);
+
+	int prev_thickness = gc_attr.line_width;
+
 	int prev_x = 0, prev_y = 0;
 	for(int i = 0; i < buffer_index; ++i){
 		set_thickness(undo_buffer[i].thickness);
-		set_color(undo_buffer[i].color);
+		XSetForeground(disp, gc, undo_buffer[i].color);
 		int x = undo_buffer[i].x;
 		int y = undo_buffer[i].y;
 		switch(undo_buffer[i].type){
@@ -122,13 +124,8 @@ void undo_action(){
 	}
 	set_thickness(prev_thickness);
 
-	int screen = DefaultScreen(disp);
-	int width = DisplayWidth(disp, screen);
-	int height = DisplayHeight(disp, screen);
 	XCopyArea(disp, display_buffer, win, gc, 0, 0, width, height, 0, 0);
-	set_color(0);
-	XFillRectangle(disp, display_buffer, gc, 0, 0, width, height);
-	set_color(prev_color);
+	XSetForeground(disp, gc, color);
 }
 
 void set_color(uint32_t argb){
@@ -145,8 +142,6 @@ void change_thickness(int delta){
 
 void set_thickness(int thickness){
 	gc_attr.line_width = thickness;
-	if(gc_attr.line_width < 0)
-		gc_attr.line_width = 0;
 	XChangeGC(disp, gc, GCLineWidth, &gc_attr);
 }
 
