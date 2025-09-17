@@ -80,8 +80,6 @@ bool draw_line_to(int x, int y){
 	return true;
 }
 
-// this kinda works but probably is not the best, would be better to either have a dynamic buffer
-// or save image snapshots instead
 void undo_action(){
 	if(buffer_index == 0)
 		return;
