@@ -23,7 +23,12 @@ int main(){
 	attr.border_pixel = 0;
 	attr.background_pixel = 0;
 
-	Window win = XCreateWindow(disp, DefaultRootWindow(disp), 0, 0, width, height, 0, visinfo.depth, InputOutput, visinfo.visual, CWColormap | CWBorderPixel | CWBackPixel, &attr);
+	Window win = XCreateWindow(disp, DefaultRootWindow(disp), -1, -1, width, height, 0, visinfo.depth, InputOutput, visinfo.visual, CWColormap | CWBorderPixel | CWBackPixel, &attr);
+
+	XClassHint class_hint;
+	class_hint.res_name = "screen-draw";
+	class_hint.res_class = "screen-draw";
+	XSetClassHint(disp, win, &class_hint);
 
 	XSelectInput(disp, win, StructureNotifyMask | KeyPressMask | Button1MotionMask | ButtonPressMask);
 
@@ -58,6 +63,8 @@ int main(){
 		if(e.type == MapNotify)
 			break;
 	}
+
+	set_thickness(3);
 
 	uint32_t colors[10] = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xff000000, 0xffffffff};
 
